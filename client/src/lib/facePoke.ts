@@ -50,8 +50,7 @@ export class FacePoke {
     console.log(`[FacePoke] Initializing WebSocket connection`);
 
     const connect = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      this.ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      this.ws = new WebSocket(`wss://jbilcke-hf-facepoke.hf.space/ws`);
 
 
       this.ws.onopen = this.handleWebSocketOpen.bind(this);
