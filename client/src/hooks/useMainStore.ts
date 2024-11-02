@@ -78,7 +78,52 @@ export const useMainStore = create<ImageState>((set, get) => ({
     }
 
     try {
-      const image = await convertImageToBase64(file);
+      // Create a temporary URL for the file
+      const objectUrl = URL.createObjectURL(file);
+      
+      // Load image and get dimensions
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+
+      // Calculate new dimensions maintaining aspect ratio
+      const MAX_SIZE = 800;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > height && width > MAX_SIZE) {
+        height = (height * MAX_SIZE) / width;
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width = (width * MAX_SIZE) / height;
+        height = MAX_SIZE;
+      }
+
+      // Create canvas and resize
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Failed to get canvas context');
+      }
+      
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convert to blob and then to base64
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.95);
+      });
+      
+      const image = await convertImageToBase64(blob);
+      
+      // Clean up
+      URL.revokeObjectURL(objectUrl);
+
       set({
         ...getDefaultState(),
         imageFile: file,
@@ -127,29 +172,32 @@ export const useMainStore = create<ImageState>((set, get) => ({
       setPreviewImage(originalImage)
       setOriginalImageUuid('')
     } else if (typeof params.image !== "undefined") {
-
-      // this is where we decide to paste back the image as a whole,
-      // or apply some shenanigans to only past back the head.
-      // the part about the head is not done yet, so we do it all for now.
-
-      //  --- old way: use it whole ---
       const image = await convertImageToBase64(params.image);
-
-      //  --- future way: try to only apply the head ---
-      // const image = await applyModifiedHeadToCanvas(params.image);
-
+      
+      // If meme mode is active, reapply the text
+      const isMemeMode = document.querySelector('[data-meme-mode="true"]') !== null;
+      if (isMemeMode) {
+        const App = document.querySelector('[data-app-root="true"]');
+        if (App) {
+          const applyMemeText = (App as any).__applyMemeText;
+          if (applyMemeText) {
+            const memeImage = await applyMemeText(image);
+            setPreviewImage(memeImage);
+            return;
+          }
+        }
+      }
+      
       setPreviewImage(image);
     } else if (typeof params.loaded !== "undefined") {
-      //console.log(`handleServerResponse: received a json`, params)
       setOriginalImageUuid(params.loaded.u)
       setMetadata({
-        center: params.loaded.c, // center - 2x1
-        size: params.loaded.s, // size - scalar
-        bbox: params.loaded.b, // bbox - 4x2
-        angle: params.loaded.a,  //angle - rad, counterclockwise
+        center: params.loaded.c,
+        size: params.loaded.s,
+        bbox: params.loaded.b,
+        angle: params.loaded.a,
       })
 
-      // right after we received the id, we perform a first blank request
       await modifyImage({
         landmark: {
           group: 'background',

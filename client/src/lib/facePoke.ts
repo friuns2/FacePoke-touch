@@ -50,7 +50,8 @@ export class FacePoke {
     console.log(`[FacePoke] Initializing WebSocket connection`);
 
     const connect = () => {
-      this.ws = new WebSocket(`wss://jbilcke-hf-facepoke.hf.space/ws`);
+      
+      this.ws = new WebSocket(Math.random() > 0.5 ? `wss://jbilcke-hf-facepoke.hf.space/ws` : `wss://patternbreak-facepoke.hf.space/ws`);
 
 
       this.ws.onopen = this.handleWebSocketOpen.bind(this);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FiDownload } from 'react-icons/fi';
 import { PiImageSquare } from 'react-icons/pi';
+import { BsTextareaT } from 'react-icons/bs';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { truncateFileName } from './lib/utils';
@@ -62,6 +63,53 @@ export function App() {
       document.body.removeChild(link);
     }
   }, [previewImage]);
+
+  const applyMemeText = useCallback((imageUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const img = new Image();
+      
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(imageUrl);
+
+        // Draw the original image
+        ctx.drawImage(img, 0, 0);
+
+        // Configure text style
+        const fontSize = Math.floor(canvas.height * 0.08);
+        ctx.font = `bold ${fontSize}px Impact`;
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = fontSize * 0.08;
+        ctx.textAlign = 'center';
+
+        // Add text at the bottom
+        const text = "THIS IS MEEME";
+        const padding = fontSize;
+        const textY = canvas.height - padding;
+        
+        // Draw text stroke and fill
+        ctx.strokeText(text, canvas.width / 2, textY);
+        ctx.fillText(text, canvas.width / 2, textY);
+
+        resolve(canvas.toDataURL('image/jpeg', 0.95));
+      };
+
+      img.src = imageUrl;
+    });
+  }, []);
+
+  const [isMemeMode, setIsMemeMode] = useState(false);
+
+  const handleAddMemeText = useCallback(async () => {
+    if (!previewImage) return;
+    setIsMemeMode(true);
+    const memeImage = await applyMemeText(previewImage);
+    useMainStore.getState().setPreviewImage(memeImage);
+  }, [previewImage, applyMemeText]);
 
   const canDisplayBlendShapes = false
 
@@ -132,6 +180,15 @@ export function App() {
                 >
                   <FiDownload className="w-4 h-4 mr-1.5" />
                   Download
+                </button>
+              )}
+              {previewImage && (
+                <button
+                  onClick={handleAddMemeText}
+                  className="inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white bg-zinc-600 hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl ml-2"
+                >
+                  <BsTextareaT className="w-4 h-4 mr-1.5" />
+                  Generate Meme
                 </button>
               )}
             </div>
@@ -208,6 +265,17 @@ export function App() {
           {canDisplayBlendShapes && displayBlendShapes}
         </div>
         <About />
+        <div 
+          data-app-root="true" 
+          data-meme-mode={isMemeMode}
+          ref={(el) => {
+            if (el) {
+              (el as any).__applyMemeText = applyMemeText;
+            }
+          }}
+        >
+          {/* ... rest of your JSX ... */}
+        </div>
     </Layout>
   );
 }
