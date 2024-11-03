@@ -115,10 +115,46 @@ export function App() {
           });
 
           const data = await response.json();
-          const memeText = data.choices[0].message.content;
+          let memeText = data.choices[0].message.content;
 
-          // Configure text style
-          const fontSize = Math.floor(canvas.height * 0.10);
+          // Text wrapping and rendering function
+          const wrapText = (text: string, maxWidth: number) => {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+              const word = words[i];
+              const width = ctx.measureText(currentLine + " " + word).width;
+              if (width < maxWidth) {
+                currentLine += " " + word;
+              } else {
+                lines.push(currentLine);
+                currentLine = word;
+              }
+            }
+            lines.push(currentLine);
+            return lines;
+          };
+
+          // Configure initial text style
+          let fontSize = Math.floor(canvas.height * 0.10);
+          const maxWidth = canvas.width * 0.9; // 90% of canvas width
+          const padding = fontSize * 0.8;
+
+          // Adjust font size until text fits
+          do {
+            ctx.font = `bold ${fontSize}px Impact`;
+            const lines = wrapText(memeText, maxWidth);
+            const totalTextHeight = lines.length * (fontSize * 1.2); // 1.2 is line height
+
+            if (totalTextHeight <= canvas.height * 0.3) { // Ensure text doesn't take more than 30% of image height
+              break;
+            }
+            fontSize -= 2;
+          } while (fontSize > 20); // Minimum font size
+
+          // Final text rendering
           ctx.font = `bold ${fontSize}px Impact`;
           ctx.fillStyle = 'white';
           ctx.strokeStyle = 'black';
@@ -126,19 +162,24 @@ export function App() {
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
 
-          // Add text at the bottom with padding
-          const padding = fontSize * 0.8;
-          const textY = canvas.height - padding;
-          
-          // Draw text with multiple strokes for better visibility
-          for(let i = 0; i < 4; i++) {
-            ctx.strokeText(memeText, canvas.width / 2, textY);
-          }
-          ctx.fillText(memeText, canvas.width / 2, textY);
+          const lines = wrapText(memeText, maxWidth);
+          const lineHeight = fontSize * 1.2;
+          const totalHeight = lines.length * lineHeight;
+          const startY = canvas.height - padding - totalHeight + lineHeight;
+
+          lines.forEach((line, index) => {
+            const y = startY + (index * lineHeight);
+            // Draw stroke
+            for(let i = 0; i < 4; i++) {
+              ctx.strokeText(line, canvas.width / 2, y);
+            }
+            // Draw fill
+            ctx.fillText(line, canvas.width / 2, y);
+          });
 
         } catch (error) {
           console.error('Error getting meme text:', error);
-          // Fallback text if API fails
+          // Similar fallback text handling with wrapping
           const text = "THIS IS MEME";
           const fontSize = Math.floor(canvas.height * 0.10);
           ctx.font = `bold ${fontSize}px Impact`;
