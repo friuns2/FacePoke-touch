@@ -166,28 +166,13 @@ export const useMainStore = create<ImageState>((set, get) => ({
     }})
   },
   handleServerResponse: async (params: OnServerResponseParams) => {
-    const { originalImage, setMetadata, setPreviewImage, setOriginalImageUuid, applyModifiedHeadToCanvas, modifyImage } = useMainStore.getState();
+    const { originalImage, setMetadata, setPreviewImage, setOriginalImageUuid } = useMainStore.getState();
     if (typeof params.error === "string") {
       console.error(`handleServerResponse: failed to perform the request, resetting the app (${params.error})`)
       setPreviewImage(originalImage)
       setOriginalImageUuid('')
     } else if (typeof params.image !== "undefined") {
       const image = await convertImageToBase64(params.image);
-      
-      // If meme mode is active, reapply the text
-      const isMemeMode = document.querySelector('[data-meme-mode="true"]') !== null;
-      if (isMemeMode) {
-        const App = document.querySelector('[data-app-root="true"]');
-        if (App) {
-          const applyMemeText = (App as any).__applyMemeText;
-          if (applyMemeText) {
-            const memeImage = await applyMemeText(image);
-            setPreviewImage(memeImage);
-            return;
-          }
-        }
-      }
-      
       setPreviewImage(image);
     } else if (typeof params.loaded !== "undefined") {
       setOriginalImageUuid(params.loaded.u)

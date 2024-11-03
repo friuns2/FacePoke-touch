@@ -12,6 +12,10 @@ import { useFacePokeAPI } from './hooks/useFacePokeAPI';
 import { Layout } from './layout';
 import { useMainStore } from './hooks/useMainStore';
 
+import sampleImage1 from '/samples/sample1.webp'  // You'll need to add these images to your public/samples folder
+import sampleImage2 from '/samples/sample2.webp'
+import sampleImage3 from '/samples/sample3.webp'
+
 export function App() {
   const error = useMainStore(s => s.error);
   const setError = useMainStore(s => s.setError);
@@ -134,9 +138,71 @@ export function App() {
       </div>
   ), [JSON.stringify(blendShapes)])
 
+  // Add these new handlers after your existing handlers
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (files?.length > 0 && files[0].type.startsWith('image/')) {
+      setImageFile(files[0]);
+    }
+  }, [setImageFile]);
+
+  // Add useEffect for document-level drag and drop
+  useEffect(() => {
+    const handleDocumentDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleDocumentDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const files = e.dataTransfer?.files;
+      if (files?.length > 0 && files[0].type.startsWith('image/')) {
+        setImageFile(files[0]);
+      }
+    };
+
+    // Add document-level event listeners
+    document.addEventListener('dragover', handleDocumentDragOver);
+    document.addEventListener('drop', handleDocumentDrop);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('dragover', handleDocumentDragOver);
+      document.removeEventListener('drop', handleDocumentDrop);
+    };
+  }, [setImageFile]);
+
+  // Add this helper function after other handlers
+  const handleSampleImageClick = useCallback(async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'sample.jpg', { type: 'image/jpeg' });
+      setImageFile(file);
+    } catch (error) {
+      console.error('Error loading sample image:', error);
+      setError('Failed to load sample image');
+    }
+  }, [setImageFile, setError]);
+
   // JSX
   return (
     <Layout>
+      <div 
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        className="h-full"
+      >
         {error && (
           <Alert variant="destructive">
             <AlertTitle>Error</AlertTitle>
@@ -265,6 +331,26 @@ export function App() {
           {canDisplayBlendShapes && displayBlendShapes}
         </div>
         <About />
+        {!previewImage && (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Or try these samples:</h3>
+            <div className="grid grid-cols-3 gap-4">
+              {[sampleImage1, sampleImage2, sampleImage3].map((image, index) => (
+                <div 
+                  key={index}
+                  onClick={() => handleSampleImageClick(image)}
+                  className="cursor-pointer rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:scale-105"
+                >
+                  <img 
+                    src={image} 
+                    alt={`Sample ${index + 1}`}
+                    className="w-full h-48 object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div 
           data-app-root="true" 
           data-meme-mode={isMemeMode}
@@ -276,6 +362,7 @@ export function App() {
         >
           {/* ... rest of your JSX ... */}
         </div>
+      </div>
     </Layout>
   );
 }

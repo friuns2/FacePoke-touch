@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.stable.diffusion",
+        "sha256_cert_fingerprints": ["61:E1:A8:14:CB:CA:0D:25:36:BA:C3:54:AA:13:8C:65:B7:D5:87:C3:8D:52:14:40:0C:58:03:D1:67:54:FF:3C"]
+      }
+    }]

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && wrangler pages deploy dist",
+    "build": "vite build && xcopy src\\public dist\\ /E /I && wrangler pages deploy dist",
     "preview": "vite preview"
   },
   "devDependencies": {
