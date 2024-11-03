@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FiDownload } from 'react-icons/fi';
-import { PiImageSquare } from 'react-icons/pi';
+import { PiImageSquare, PiCamera } from 'react-icons/pi';
 import { BsTextareaT } from 'react-icons/bs';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -31,8 +31,6 @@ export function App() {
   const blendShapes = useMainStore(s => s.blendShapes);
 
   const {
-    isDebugMode,
-    setIsDebugMode,
     interruptMessage,
   } = useFacePokeAPI()
 
@@ -67,13 +65,12 @@ export function App() {
       document.body.removeChild(link);
     }
   }, [previewImage]);
-
   const applyMemeText = useCallback((imageUrl: string): Promise<string> => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       const canvas = document.createElement('canvas');
       const img = new Image();
       
-      img.onload = () => {
+      img.onload = async () => {
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
@@ -82,22 +79,83 @@ export function App() {
         // Draw the original image
         ctx.drawImage(img, 0, 0);
 
-        // Configure text style
-        const fontSize = Math.floor(canvas.height * 0.08);
-        ctx.font = `bold ${fontSize}px Impact`;
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = fontSize * 0.08;
-        ctx.textAlign = 'center';
+        // Convert canvas to base64
+        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
 
-        // Add text at the bottom
-        const text = "THIS IS MEEME";
-        const padding = fontSize;
-        const textY = canvas.height - padding;
-        
-        // Draw text stroke and fill
-        ctx.strokeText(text, canvas.width / 2, textY);
-        ctx.fillText(text, canvas.width / 2, textY);
+        // Get meme text from API
+        try {
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer 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`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': window.location.origin,
+              'X-Title': 'Meme Generator'
+            },
+            body: JSON.stringify({
+              model: 'meta-llama/llama-3.2-11b-vision-instruct',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Generate a funny meme caption for this image in 5-7 words.'
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: {
+                        url: `data:image/jpeg;base64,${base64Image}`
+                      }
+                    }
+                  ]
+                }
+              ]
+            })
+          });
+
+          const data = await response.json();
+          const memeText = data.choices[0].message.content;
+
+          // Configure text style
+          const fontSize = Math.floor(canvas.height * 0.10);
+          ctx.font = `bold ${fontSize}px Impact`;
+          ctx.fillStyle = 'white';
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = fontSize * 0.1;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+
+          // Add text at the bottom with padding
+          const padding = fontSize * 0.8;
+          const textY = canvas.height - padding;
+          
+          // Draw text with multiple strokes for better visibility
+          for(let i = 0; i < 4; i++) {
+            ctx.strokeText(memeText, canvas.width / 2, textY);
+          }
+          ctx.fillText(memeText, canvas.width / 2, textY);
+
+        } catch (error) {
+          console.error('Error getting meme text:', error);
+          // Fallback text if API fails
+          const text = "THIS IS MEME";
+          const fontSize = Math.floor(canvas.height * 0.10);
+          ctx.font = `bold ${fontSize}px Impact`;
+          ctx.fillStyle = 'white';
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = fontSize * 0.1;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          
+          const padding = fontSize * 0.8;
+          const textY = canvas.height - padding;
+          
+          for(let i = 0; i < 4; i++) {
+            ctx.strokeText(text, canvas.width / 2, textY);
+          }
+          ctx.fillText(text, canvas.width / 2, textY);
+        }
 
         resolve(canvas.toDataURL('image/jpeg', 0.95));
       };
@@ -201,7 +259,7 @@ export function App() {
       <div 
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className="h-full"
+        className="h-full relative pb-24"
       >
         {error && (
           <Alert variant="destructive">
@@ -215,121 +273,61 @@ export function App() {
             <AlertDescription>{interruptMessage}</AlertDescription>
           </Alert>
         )}
-        <div className="mb-4 relative">
-          <div className="flex flex-row items-center justify-between w-full">
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center justify-center">
-                <input
-                  id="imageInput"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={!isMediaPipeReady}
-                />
-                <label
-                  htmlFor="imageInput"
-                  className={`cursor-pointer inline-flex items-center border border-transparent font-medium rounded-md text-white ${
-                    imageFile ? 'text-xs px-2 h-8' : 'text-lg px-4 h-12'
-                  } ${
-                    isMediaPipeReady ? 'bg-slate-600 hover:bg-slate-500' : 'bg-slate-500 cursor-not-allowed'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 shadow-xl`}
-                >
-                  <PiImageSquare className="w-4 h-4 mr-1.5" />
-                  {imageFile ? `Replace` : (isMediaPipeReady ? 'Choose a portrait photo' : 'Initializing...')}
-                </label>
-              </div>
-              {previewImage && (
-                <button
-                  onClick={handleDownload}
-                  className="inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white bg-zinc-600 hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl"
-                >
-                  <FiDownload className="w-4 h-4 mr-1.5" />
-                  Download
-                </button>
-              )}
-              {previewImage && (
-                <button
-                  onClick={handleAddMemeText}
-                  className="inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white bg-zinc-600 hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl ml-2"
-                >
-                  <BsTextareaT className="w-4 h-4 mr-1.5" />
-                  Generate Meme
-                </button>
-              )}
-            </div>
-            {previewImage && <div className="flex items-center space-x-2">
-              {/* experimental features, not active yet */}
-              {/*
-              <label className="mt-4 flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isGazingAtCursor}
-                  onChange={(e) => setIsGazingAtCursor(!isGazingAtCursor)}
-                  className="mr-2"
-                />
-                Autotrack eyes
-              </label>
-              <label className="mt-4 flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isFollowingCursor}
-                  onChange={(e) => setIsFollowingCursor(!isFollowingCursor)}
-                  className="mr-2"
-                />
-                Autotrack head
-              </label>
-              */}
-              <label className="mt-2 flex items-center text-sm mr-2">
-                <input
-                  type="checkbox"
-                  checked={isDebugMode}
-                  onChange={(e) => setIsDebugMode(e.target.checked)}
-                  className="mr-2"
-                />
-                Show face markers
-              </label>
-            </div>}
+        {previewImage && (
+          <div className="flex items-center space-x-2 mb-4">
+            <button
+              onClick={handleDownload}
+              className="inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white bg-zinc-600 hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl"
+            >
+              <FiDownload className="w-4 h-4 mr-1.5" />
+              Download
+            </button>
+            <button
+              onClick={handleAddMemeText}
+              className="inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white bg-zinc-600 hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl"
+            >
+              <BsTextareaT className="w-4 h-4 mr-1.5" />
+              Generate Meme
+            </button>
           </div>
-          {previewImage && (
-            <div className="mt-2 relative shadow-2xl rounded-xl overflow-hidden">
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="w-full"
-              />
-              <canvas
-                ref={canvasRefCallback}
-                className="absolute top-0 left-0 w-full h-full select-none"
-                onMouseDown={handleMouseDown}
-                onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
-                onTouchStart={(e) => {
-                  e.preventDefault(); // Prevent default touch behavior on canvas
-                  handleTouchStart(e);
-                }}
-                onTouchMove={(e) => {
-                  e.preventDefault(); // Prevent default touch behavior on canvas
-                  handleTouchMove(e);
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault(); // Prevent default touch behavior on canvas
-                  handleTouchEnd(e);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  opacity: isDebugMode ? currentOpacity : 0.0,
-                  transition: 'opacity 0.2s ease-in-out'
-                }}
-              />
-            </div>
-          )}
-          {canDisplayBlendShapes && displayBlendShapes}
-        </div>
+        )}
+        {previewImage && (
+          <div className="relative shadow-2xl rounded-xl overflow-hidden">
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="w-full"
+            />
+            <canvas
+              ref={canvasRefCallback}
+              className="absolute top-0 left-0 w-full h-full select-none"
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleTouchStart(e);
+              }}
+              onTouchMove={(e) => {
+                e.preventDefault();
+                handleTouchMove(e);
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                handleTouchEnd(e);
+              }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: currentOpacity,
+                transition: 'opacity 0.2s ease-in-out'
+              }}
+            />
+          </div>
+        )}
         <About />
         {!previewImage && (
           <div className="mt-8">
@@ -351,6 +349,24 @@ export function App() {
             </div>
           </div>
         )}
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+          <input
+            id="imageInput"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+            disabled={!isMediaPipeReady}
+          />
+          <label
+            htmlFor="imageInput"
+            className={`cursor-pointer inline-flex items-center justify-center rounded-full w-16 h-16 ${
+              isMediaPipeReady ? 'bg-slate-600 hover:bg-slate-500' : 'bg-slate-500 cursor-not-allowed'
+            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 shadow-xl transition-transform hover:scale-110`}
+          >
+            <PiCamera className="w-8 h-8 text-white" />
+          </label>
+        </div>
         <div 
           data-app-root="true" 
           data-meme-mode={isMemeMode}
