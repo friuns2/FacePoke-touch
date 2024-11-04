@@ -87,7 +87,7 @@ export function App() {
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer sk-or-v1-`+getRandomKey(),
+              'Authorization': `Bearer sk-or-v1-`+'dfa0510d1c8f21550ea2d09e0b26a53e82fc35575b7b429339ae6e4fb73a432f',
               'Content-Type': 'application/json',
               'HTTP-Referer': window.location.origin,
               'X-Title': 'Meme Generator'
@@ -438,7 +438,7 @@ export function App() {
             }
           }}
         >
-          {/* ... rest of your JSX ... */}
+          
         </div>
       </div>
     </Layout>
