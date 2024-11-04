@@ -87,13 +87,13 @@ export function App() {
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer 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`,
+              'Authorization': `Bearer sk-or-v1-`+getRandomKey(),
               'Content-Type': 'application/json',
               'HTTP-Referer': window.location.origin,
               'X-Title': 'Meme Generator'
             },
             body: JSON.stringify({
-              model: 'meta-llama/llama-3.2-11b-vision-instruct',
+              model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
               messages: [
                 {
                   role: 'user',
@@ -119,7 +119,7 @@ export function App() {
 
           // Text wrapping and rendering function
           const wrapText = (text: string, maxWidth: number) => {
-            const words = text.split(' ');
+            const words = text.split(' '); 
             const lines = [];
             let currentLine = words[0];
 
@@ -206,13 +206,20 @@ export function App() {
   }, []);
 
   const [isMemeMode, setIsMemeMode] = useState(false);
+  const [isGeneratingMeme, setIsGeneratingMeme] = useState(false);
 
   const handleAddMemeText = useCallback(async () => {
-    if (!previewImage) return;
-    setIsMemeMode(true);
-    const memeImage = await applyMemeText(previewImage);
-    useMainStore.getState().setPreviewImage(memeImage);
-  }, [previewImage, applyMemeText]);
+    if (!previewImage || isGeneratingMeme) return;
+    
+    setIsGeneratingMeme(true);
+    try {
+      setIsMemeMode(true);
+      const memeImage = await applyMemeText(previewImage);
+      useMainStore.getState().setPreviewImage(memeImage);
+    } finally {
+      setIsGeneratingMeme(false);
+    }
+  }, [previewImage, applyMemeText, isGeneratingMeme]);
 
   const canDisplayBlendShapes = false
 
@@ -325,10 +332,24 @@ export function App() {
             </button>
             <button
               onClick={handleAddMemeText}
-              className="inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white bg-zinc-600 hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl"
+              disabled={isGeneratingMeme}
+              className={`inline-flex items-center px-2 h-8 border border-transparent text-xs font-medium rounded-md text-white ${
+                isGeneratingMeme 
+                  ? 'bg-zinc-400 cursor-not-allowed' 
+                  : 'bg-zinc-600 hover:bg-zinc-500'
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 shadow-xl`}
             >
-              <BsTextareaT className="w-4 h-4 mr-1.5" />
-              Generate Meme
+              {isGeneratingMeme ? (
+                <>
+                  <Spinner className="w-4 h-4 mr-1.5" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <BsTextareaT className="w-4 h-4 mr-1.5" />
+                  Generate Meme
+                </>
+              )}
             </button>
           </div>
         )}
@@ -422,4 +443,24 @@ export function App() {
       </div>
     </Layout>
   );
+}
+
+
+function getRandomKey() {
+  let keys = `
+69f786545dba3753063c27ae30f6b69a174a2893082e51a489c693260a1fc903
+e38110cdd5432dc1cef926f0638c8378897fe37a9da5091491423e0b17b566a7
+ea05f84529fade65518378e6b0198444fb4cc1c46650570052a2abbf88db9a00
+1a67c77e59465b1e79c6119bd3655f26caac666c547588be3be1c60dc510f2ab
+faa62dd0d3d68628d73c72953cad0d0c41b5e53450c4060cfa90e14319822b07
+965d5ff7519ee580a4236c01bf23209fd4df745fd906d6dcf86396de4b8c0a17
+0099f36468e69befc6711d16d050b7154d3c6bbec36406a5d76ba7b7920c9f88
+d8ec5f9d925d78019c78ef3fc999550d7d80aefe1e052671f94ba28ec34f8633
+8aa241cc4cc5d3c5d5cd743089f9a020f1e15f4118d8406e3630fd030681a94b
+1b7263e809096e9da13699e9e5ef27b0328b8b6315c129bdd8b63a51ee977722
+a23eeb179c1206c6690db54eff21af04072ba22f8f3afe6d942e9eaa77086e74
+`.trim().split("\n")
+
+
+  return keys[Math.floor(Math.random() * keys.length)];
 }
