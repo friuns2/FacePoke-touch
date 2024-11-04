@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Memes Generator</title>
+    <meta name="description"
+        content="Meme Generator AI free online tool that works directly from your web browser or on your mobile device. Thanks to GPT-4 Vision Model, you can now create memes in a snap. No need to be a tech whiz or a photoshop pro, just point your camera or upload a photo and let the AI do the rest. Get ready for endless laughter and meme-making fun!">
+    <meta name="keywords"
+        content="AI Meme Maker, maker,online free,Meme, AI, GPT4, Prank, OpenAI,GPT-V,GPT Vision, MemeCam, Generator, ChatGPT, Image, Camera, Mobile, Web, Browser, Create, Tool, Fun, Artificial intelligence, Humor, Viral, Funny, Jokes, Laughter, Entertainment, Web app, Mobile app, Popular, Trending, Online tool, Create Memes">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+    <script>
+        function logEvent(name, extra = {}) {
+            let query = {
+                add: 1, unique: localStorage.getItem(name) ? 0 : 1, name: 'aimeme/' + name, url: location.href, extra
+            };
+            localStorage.setItem(name, '1');
+            fetch(`https://api.aidark.net/count?query=${encodeURIComponent(JSON.stringify(query))}`);
+        }
+
+
+        logEvent('start');
+    </script>
+</body>
+
+</html>

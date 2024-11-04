@@ -13,7 +13,7 @@ export function useFacePokeAPI() {
   // Initialize FacePoke
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    setIsDebugMode(urlParams.get('debug') === 'true');
+    setIsDebugMode(true);
   }, []);
 
   // Handle WebSocket interruptions

@@ -3,7 +3,9 @@
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/index.tsx --outdir ../public/"
+    "dev": "vite",
+    "build": "vite build && xcopy src\\public dist\\ /E /I && wrangler pages deploy dist",
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -18,6 +20,7 @@
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.3.3",
     "beautiful-react-hooks": "^5.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -26,11 +29,13 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.3.0",
+    "react-touch-events": "^3.0.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss": "^3.4.13",
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
     "uuid": "^10.0.0",
+    "vite": "^5.4.10",
     "zustand": "^5.0.0-rc.2"
   }
 }
